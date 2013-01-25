@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/new_folder"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="@string/menu_new_folder"
+        android:titleCondensed="@string/menu_new_folder"
+        android:visible="true">
+    </item>
+    <item android:id="@+id/config" android:icon="@android:drawable/ic_menu_add" android:title="@string/menu_settings" android:titleCondensed="@string/menu_settings" android:enabled="true" android:visible="true"></item>
+
+</menu>

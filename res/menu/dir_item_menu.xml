@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/menu_open" android:titleCondensed="@string/menu_open" android:title="@string/menu_open"></item>
+    <item android:id="@+id/menu_remove" android:titleCondensed="@string/menu_remove" android:title="@string/menu_remove"></item>
+    <item android:id="@+id/menu_rename" android:titleCondensed="@string/menu_rename" android:title="@string/menu_rename"></item>
+    
+
+</menu>
