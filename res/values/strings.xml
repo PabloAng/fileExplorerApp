@@ -12,17 +12,43 @@
 
 
     <!-- HomeActivity -->
-
+    <string name="removed_msg">was removed</string>
+    <string name="not_removed_msg">was not removed</string>
+    <string name="not_renamed_msg">Could not be renamed directory/file</string>
+    <string name="new_folder_exists_msg">The directory already exists</string>
+    <string name="not_new_folder_msg">Could not create new directory</string>
 
     <!-- ListView Item -->
     <string name="default_dir">home</string>
     <string name="empty_dir">Empty folder</string>
-    <string name="default_dir_url">/home/</string>
+    <string name="default_dir_url">Home</string>
     <string name="default_last_mod">01/01/0001 00:00</string>
+
     <!-- Colors -->
     <color name="gray">#424242</color>
+
     <string name="menu_open">Open</string>
     <string name="menu_remove">Remove</string>
     <string name="menu_rename">Rename</string>
+    <string name="menu_copy">Copy</string>
+    <string name="menu_move">Move</string>
+
+    <!-- Remove Alert -->
+    <string name="title_remove_alert">Remove</string>
+    <string name="remove_msg">Do you really want to remove the directory/file?</string>
+
+    <!-- Rename Alert -->
+    <string name="title_rename_alert">Rename</string>
+    <string name="rename_msg">Write the new name</string>
+
+    <!-- New folder Alert -->
+    <string name="title_new_folder_alert">New folder</string>
+    <string name="new_folder_name_msg">Write the name of the new folder</string>
+
+    <!-- Button Label -->
+    <string name="btn_ok">Ok</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="menu_cut">Cut</string>
+    <string name="default_size">100.2kb</string>
 
 </resources>

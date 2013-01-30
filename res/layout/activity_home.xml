@@ -6,23 +6,15 @@
     android:orientation="vertical" >
 
     <HorizontalScrollView
-        android:id="@+id/horizontalScrollView1"
+        android:id="@+id/url_scroll_bar"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:background="@color/gray" >
+        android:background="@drawable/degrade_background" >
 
         <LinearLayout
             android:id="@+id/url_bar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" >
-
-            <Button
-                android:id="@+id/btn_home"
-                style="?android:attr/buttonStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/default_dir"
-                android:textStyle="bold" />
         </LinearLayout>
     </HorizontalScrollView>
 
@@ -37,8 +29,9 @@
 
     <ListView
         android:id="@+id/dir_list"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="fill_parent"
+        android:layout_height="0dip"
+        android:layout_weight="1"
         tools:listitem="@layout/dir_list_item" >
     </ListView>
 

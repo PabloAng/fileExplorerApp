@@ -3,22 +3,49 @@ package com.android.explorer;
 import java.io.File;
 
 import android.content.Context;
-import android.util.AttributeSet;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.widget.Button;
+
+import com.demo.explorer.R;
 
 public class UrlButton extends Button {
 
-	private String path;
+	private File file;
 
-	public UrlButton(Context context, AttributeSet attrs, int defStyle,
-			String path) {
-		super(context, attrs, defStyle);
-		// TODO Auto-generated constructor stub
-		this.path = path;
+	public UrlButton(Context context) {
+		super(context);
+	}
+
+	public UrlButton(Context context, int background, String msg, File file) {
+		super(context);
+		this.file = file;
+
+		setBackgroundResource(background);
+		setTypeface(null, Typeface.BOLD);
+		setTextColor(getResources().getColor(android.R.color.white));
+		setText(msg);
+
+	}
+
+	public UrlButton(Context context, int background, int drawableLeft,
+			String msg, File file) {
+		super(context);
+		this.file = file;
+
+		setBackgroundResource(background);
+		setTypeface(null, Typeface.BOLD);
+		setTextColor(getResources().getColor(android.R.color.white));
+		setText(msg);
+		/*
+		 * Drawable img = getResources().getDrawable(drawableLeft); int w =
+		 * getWidth(); int h = getHeight(); img.setBounds(0, 0, w, h);
+		 * setCompoundDrawables(img, null, null, null);
+		 */
 	}
 
 	public File getFile() {
-		return new File(path);
+		return file;
 	}
 
 }

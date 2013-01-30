@@ -9,6 +9,23 @@
         android:titleCondensed="@string/menu_new_folder"
         android:visible="true">
     </item>
-    <item android:id="@+id/config" android:icon="@android:drawable/ic_menu_add" android:title="@string/menu_settings" android:titleCondensed="@string/menu_settings" android:enabled="true" android:visible="true"></item>
+    <item
+        android:id="@+id/config"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="@string/menu_settings"
+        android:titleCondensed="@string/menu_settings"
+        android:visible="true">
+    </item>
+    <item
+        android:id="@+id/menu_cut"
+        android:title="@string/menu_cut"
+        android:titleCondensed="@string/menu_cut">
+    </item>
+    <item
+        android:id="@+id/menu_copy"
+        android:title="@string/menu_copy"
+        android:titleCondensed="@string/menu_copy">
+    </item>
 
 </menu>
