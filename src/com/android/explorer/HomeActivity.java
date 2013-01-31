@@ -1,20 +1,21 @@
 package com.android.explorer;
 
 import java.io.File;
-import java.io.FilenameFilter;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
-import android.graphics.Typeface;
+import android.content.DialogInterface;
 import android.os.Bundle;
-import android.os.Environment;
-import android.util.Log;
+import android.os.Handler;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -29,28 +30,39 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.android.explorer.utils.Data;
-import com.android.explorer.utils.Data.DataTypeEnum;
+import com.android.explorer.exceptions.CantCreateFileException;
+import com.android.explorer.exceptions.CantRemoveFileException;
+import com.android.explorer.exceptions.CantRenameFileException;
+import com.android.explorer.interfaces.FileManager;
 import com.demo.explorer.R;
 
 public class HomeActivity extends Activity {
 
 	// constants
-	private static final String DATE_FORMAT = "dd/MM/yy HH:mm";
-	private static final String TAG = "HomeActivity";
+	private static final String HOME = "INTERNAL_HOME_PATH_FOLDER";
+	// private static final String TAG = "HomeActivity";
 
 	// Views
-	private ListView dirList;
-	private LinearLayout urlBar;
-	private Button goHome;
+	private ListView dirList = null;
+	private LinearLayout urlBar = null;
+	private Button goHome = null;
 
-	private List<Button> urlBtns;
-	private ArrayList<Data> homeList;
+	// Rename textedit
+	private UrlEditText nameField = null;
+
+	private List<UrlButton> urlBtns = null;
+	private List<File> homeList = null;
+	private List<File> pendingRemovals = null;
+
+	Map<String, FileManager> fManagers = null;
+	FileManager currentFM = null;
 
 	/** Called when the activity is first created. */
 	@Override
@@ -58,69 +70,14 @@ public class HomeActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_home);
 
+		pendingRemovals = new ArrayList<File>();
+		fManagers = new HashMap<String, FileManager>();
+		fManagers.put("sdcard", new SdCardExplorer());
+		urlBtns = new LinkedList<UrlButton>();
 		setViews();
 		initHomeList();
 		goHomeView();
 
-	}
-
-	private void setViews() {
-
-		urlBar = (LinearLayout) this.findViewById(R.id.url_bar);
-		dirList = (ListView) this.findViewById(R.id.dir_list);
-		goHome = (Button) findViewById(R.id.btn_home); // go Home button
-
-		urlBtns = new LinkedList<Button>();
-
-		goHome.setOnClickListener(new OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				goHomeView();
-			}
-		});
-
-		dirList.setOnItemClickListener(new OnItemClickListener() {
-
-			@Override
-			public void onItemClick(AdapterView<?> parent, View view,
-					int position, long id) {
-				openData((Data) dirList.getItemAtPosition(position));
-			}
-
-		});
-
-		this.registerForContextMenu(dirList);
-	}
-
-	private void initHomeList() {
-		homeList = new ArrayList<Data>();
-		if (isSdPresent()) {
-			File sdcard = new File(Environment.getExternalStorageDirectory()
-					+ "");
-			homeList.add(new Data("mnt/sdcard", DataTypeEnum.FOLDER, new Date(
-					sdcard.lastModified())));
-		}
-	}
-
-	private void goHomeView() {
-
-		if (!HomeActivity.this.homeList.isEmpty()) {
-
-			dirList.setVisibility(View.VISIBLE);
-			this.findViewById(R.id.empty).setVisibility(View.GONE);
-
-			// Populate ListView
-
-			dirList.setAdapter(new DirItemAdapter(this, R.layout.activity_home,
-					R.id.dir_list, HomeActivity.this.homeList));
-			urlBtns.clear();
-			urlBar.removeAllViews();
-			urlBar.addView(goHome);
-		} else {
-			this.findViewById(R.id.empty).setVisibility(View.VISIBLE);
-			dirList.setVisibility(View.GONE);
-		}
 	}
 
 	@Override
@@ -128,12 +85,16 @@ public class HomeActivity extends Activity {
 		if (!urlBtns.isEmpty()) {
 			urlBtns.remove(urlBtns.size() - 1);
 			urlBar.removeViewAt(urlBar.getChildCount() - 1);
-			loadFileList();
+			if (!urlBtns.isEmpty())
+				loadFileList(urlBtns.get(urlBtns.size() - 1).getFile());
+			else
+				goHomeView();
 		} else {
 			super.onBackPressed();
 		}
 	}
 
+	/***************** OPTION MENU SETUP *******************/
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -142,6 +103,24 @@ public class HomeActivity extends Activity {
 		return true;
 	}
 
+	// This method is called once the menu is selected
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		if (!getCurrentDirectory().exists())
+			return false;
+		switch (item.getItemId()) {
+
+		case R.id.config:
+
+			break;
+		case R.id.new_folder:
+			createNewFolder();
+			break;
+		}
+		return true;
+	}
+
+	/***************** CONTEXT MENU SETUP *******************/
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View v,
 			ContextMenu.ContextMenuInfo menuInfo) {
@@ -154,8 +133,7 @@ public class HomeActivity extends Activity {
 			Adapter adapter = ((ListView) v).getAdapter();
 
 			// Retrieve the item that was clicked on
-			Data item = (Data) adapter.getItem(info.position);
-
+			File item = (File) adapter.getItem(info.position);
 			menu.setHeaderTitle(item.toString());
 			MenuInflater inflater = getMenuInflater();
 
@@ -169,11 +147,17 @@ public class HomeActivity extends Activity {
 		AdapterContextMenuInfo info = (AdapterContextMenuInfo) mItem
 				.getMenuInfo();
 		// Retrieve the item that was clicked on
-		Data d = (Data) dirList.getAdapter().getItem(info.position);
+		File d = (File) dirList.getAdapter().getItem(info.position);
 
 		switch (mItem.getItemId()) {
 		case R.id.menu_open:
 			openData(d);
+			break;
+		case R.id.menu_copy:
+			copyData(d);
+			break;
+		case R.id.menu_cut:
+			cutData(d);
 			break;
 		case R.id.menu_remove:
 			removeData(d);
@@ -187,38 +171,21 @@ public class HomeActivity extends Activity {
 		return true;
 	}
 
-	// This method is called once the menu is selected
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-
-		switch (item.getItemId()) {
-
-		case R.id.config:
-
-			break;
-		case R.id.new_folder:
-
-			break;
-		}
-		return true;
-	}
-
 	/**
 	 * Adapter used to populate listItems with folders and files data
 	 */
-	public class DirItemAdapter extends ArrayAdapter<Data> {
+	public class DirItemAdapter extends ArrayAdapter<File> {
 
-		private final ArrayList<Data> data;
+		private final List<File> data;
 
 		public DirItemAdapter(Context context, int layoutResourceId,
-				int textViewResourceId, ArrayList<Data> values) {
+				int textViewResourceId, List<File> values) {
 
 			super(context, layoutResourceId, textViewResourceId, values);
 			this.data = values;
 		}
 
 		@Override
-		// TODO Add attachment handling
 		public View getView(int position, View convertView, ViewGroup parent) {
 
 			View v = convertView;
@@ -227,12 +194,15 @@ public class HomeActivity extends Activity {
 				v = vi.inflate(R.layout.dir_list_item, null);
 			}
 
-			Data item = data.get(position);
+			File item = data.get(position);
 
 			if (item != null) {
 
 				// id
 				TextView id = (TextView) v.findViewById(R.id.item_id);
+
+				// weight
+				TextView weight = (TextView) v.findViewById(R.id.item_weight);
 
 				// last modification
 				TextView lmod = (TextView) v.findViewById(R.id.item_last_mod);
@@ -240,28 +210,16 @@ public class HomeActivity extends Activity {
 				// icon
 				ImageView icon = (ImageView) v.findViewById(R.id.item_ic);
 
-				if (id != null)
-					id.setText(item.getId());
+				id.setText(item.getName());
 
-				if (lmod != null) {
-					SimpleDateFormat dateformat = new SimpleDateFormat(
-							HomeActivity.DATE_FORMAT);
-					StringBuilder strDate = new StringBuilder(
-							dateformat.format(item.getLastModification()));
-					lmod.setText(strDate);
-				}
-
-				if (icon != null) {
-					switch (item.getType()) {
-					case FOLDER:
-						icon.setImageResource(R.drawable.ic_folder);
-						break;
-					case FILE:
-						icon.setImageResource(R.drawable.ic_document);
-						break;
-					default:
-						break;
-					}
+				lmod.setText(DateFormatter.formatDate(item.lastModified()));
+				if (item.isDirectory()) {
+					icon.setImageResource(R.drawable.ic_folder);
+					weight.setVisibility(View.GONE);
+				} else if (item.isFile()) {
+					icon.setImageResource(R.drawable.ic_document);
+					weight.setText(FileSizeFormatter.formatFileSize(item
+							.length()));
 				}
 
 			}
@@ -271,60 +229,196 @@ public class HomeActivity extends Activity {
 		}
 	}
 
-	private void openData(Data d) {
-		switch (d.getType()) {
-		case FOLDER:
-			openFolder(d);
-			break;
-		case FILE:
-			openFile(d);
-			break;
-		default:
-			break;
+	/******************* PRIVATE METHODS ********************/
+
+	/**
+	 * Initialize the homeList
+	 */
+	private void initHomeList() {
+		homeList = new ArrayList<File>();
+		for (String key : fManagers.keySet()) {
+			homeList.add(fManagers.get(key).getRootFile());
 		}
 	}
 
-	private void removeData(Data d) {
-		switch (d.getType()) {
-		case FOLDER:
-			openFolder(d);
-			break;
-		case FILE:
-			openFile(d);
-			break;
-		default:
-			break;
+	/**
+	 * Initialize all views of the activity
+	 */
+	private void setViews() {
+
+		urlBar = (LinearLayout) this.findViewById(R.id.url_bar);
+		dirList = (ListView) this.findViewById(R.id.dir_list);
+		dirList.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+
+		goHome = new UrlButton(this, R.drawable.black_button_left, getText(
+				R.string.default_dir_url).toString()
+		/* + "  /" */, new File(HomeActivity.HOME)); // go Home button
+
+		// Set goHome listener: show home view on Click
+		goHome.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				goHomeView();
+			}
+		});
+
+		// Set dirList item listener: open File
+		dirList.setOnItemClickListener(new OnItemClickListener() {
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view,
+					int position, long id) {
+				openData((File) dirList.getItemAtPosition(position));
+			}
+
+		});
+
+		this.registerForContextMenu(dirList);
+	}
+
+	/**
+	 * Reset listview to Home
+	 */
+	private void goHomeView() {
+
+		if (!homeList.isEmpty()) {
+			populateListView(dirList, R.layout.activity_home, R.id.dir_list,
+					homeList);
+			findViewById(R.id.empty).setVisibility(View.GONE);
+			urlBtns.clear();
+			urlBar.removeAllViews();
+
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+					LinearLayout.LayoutParams.WRAP_CONTENT,
+					LinearLayout.LayoutParams.WRAP_CONTENT);
+			urlBar.addView(goHome, lp);
+
+		} else {
+			findViewById(R.id.empty).setVisibility(View.VISIBLE);
+			findViewById(R.id.dir_list).setVisibility(View.GONE);
 		}
 	}
 
-	private void renameData(Data d) {
-		switch (d.getType()) {
-		case FOLDER:
+	/**
+	 * Open the File, and show the result.
+	 * 
+	 * @param d
+	 *            File object. In case of directory, opens the directory and
+	 *            update the listview. Nothing if it is a file.
+	 */
+	private void openData(File d) {
+		if (d.isDirectory())
 			openFolder(d);
-			break;
-		case FILE:
+		else if (d.isFile())
 			openFile(d);
-			break;
-		default:
-			break;
+	}
+
+	/**
+	 * Confirm if the user want to delete file throw prompt
+	 * 
+	 * @param d
+	 *            File to be removed.
+	 */
+	private void removeData(File d) {
+		pendingRemovals.clear();
+		pendingRemovals.add(d);
+		AlertDialog.Builder removeAlert = new AlertDialog.Builder(this);
+
+		removeAlert.setTitle(R.string.title_remove_alert);
+		removeAlert.setMessage(R.string.remove_msg);
+
+		removeAlert.setPositiveButton(R.string.btn_ok,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int whichButton) {
+						deletePendingFiles();
+					}
+				});
+		removeAlert.setNegativeButton(R.string.btn_cancel,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int whichButton) {
+						pendingRemovals.clear();
+					}
+				});
+		removeAlert.show();
+	}
+
+	/**
+	 * Delete pending files that were confirmed to be removed by the user.
+	 */
+	private void deletePendingFiles() {
+		for (File d : pendingRemovals) {
+			File parent = d.getParentFile();
+			try {
+				this.currentFM.removeFileOrDirectory(d);
+				Toast.makeText(this,
+						d.getName() + " " + getText(R.string.removed_msg),
+						Toast.LENGTH_SHORT).show();
+				loadFileList(parent);
+			} catch (CantRemoveFileException e) {
+				Toast.makeText(this,
+						d.getName() + " " + getText(R.string.not_removed_msg),
+						Toast.LENGTH_SHORT).show();
+			}
 		}
 	}
 
-	private void openFolder(Data d) {
-		Button btn = new Button(this, null, android.R.attr.buttonStyleSmall);
-		btn.setTypeface(null, Typeface.BOLD);
-		btn.setText(d.getId());
+	/**
+	 * Ask the user to enter the new name, and try to change it.
+	 * 
+	 * @param d
+	 *            File to be renamed.
+	 */
+	private void renameData(File d) {
+		AlertDialog.Builder editalert = new AlertDialog.Builder(this);
+
+		editalert.setTitle(R.string.title_rename_alert);
+		editalert.setMessage(R.string.rename_msg);
+
+		nameField = new UrlEditText(this, d);
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+				LinearLayout.LayoutParams.FILL_PARENT,
+				LinearLayout.LayoutParams.FILL_PARENT);
+		nameField.setLayoutParams(lp);
+		nameField.setSingleLine();
+		nameField.setText(d.getName());
+		nameField.selectAll();
+		editalert.setView(nameField);
+
+		editalert.setPositiveButton(R.string.btn_ok,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int whichButton) {
+						try {
+							HomeActivity.this.currentFM.renameFileOrDirectory(
+									nameField.getFile(), nameField.getText()
+											.toString());
+							loadFileList(nameField.getFile().getParentFile());
+						} catch (CantRenameFileException e) {
+							Toast.makeText(HomeActivity.this,
+									R.string.not_renamed_msg,
+									Toast.LENGTH_SHORT).show();
+
+						}
+					}
+				});
+		editalert.setNegativeButton(R.string.btn_cancel, null);
+
+		editalert.show();
+	}
+
+	private void openFolder(File d) {
+		UrlButton btn = new UrlButton(this, R.drawable.black_button_right,
+				d.getName()/* + "  /" */, d);
 
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
 				LinearLayout.LayoutParams.WRAP_CONTENT,
 				LinearLayout.LayoutParams.WRAP_CONTENT);
-
 		btn.setOnClickListener(new OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
-				int pos = urlBtns.indexOf((Button) v);
-				Iterator<Button> it = urlBtns.iterator();
+				((UrlButton) v)
+						.setBackgroundResource(R.drawable.black_button_right);
+				int pos = urlBtns.indexOf((UrlButton) v);
+				Iterator<UrlButton> it = urlBtns.iterator();
 				while (it.hasNext()) {
 					Button btn = it.next();
 					if (pos < urlBtns.indexOf((Button) btn)) {
@@ -332,88 +426,136 @@ public class HomeActivity extends Activity {
 						urlBar.removeView(btn);
 					}
 				}
-				loadFileList();
+				loadFileList(((UrlButton) v).getFile());
 			}
 		});
 
+		loadFileList(d);
+		if (!urlBtns.isEmpty())
+			urlBtns.get(urlBtns.size() - 1).setBackgroundResource(
+					R.drawable.black_button_middle);
 		urlBar.addView(btn, lp);
 		urlBtns.add(btn);
-		loadFileList();
-	}
 
-	private void openFile(Data d) {
-
-	}
-
-	private static boolean isSdPresent() {
-		return android.os.Environment.getExternalStorageState().equals(
-				android.os.Environment.MEDIA_MOUNTED);
-	}
-
-	private void loadFileList() {
-		ArrayList<Data> fileList = new ArrayList<Data>();
-		String strPath = "";
-
-		if (this.urlBtns.isEmpty()) {
-			goHomeView();
-			return;
-		}
-		this.dirList.setVisibility(View.VISIBLE);
-		this.findViewById(R.id.empty).setVisibility(View.GONE);
-		// Get current path
-		for (Button btn : this.urlBtns) {
-			strPath += "/" + btn.getText().toString();
-		}
-
-		File path = new File(strPath);
-
-		try {
-			path.mkdirs();
-		} catch (SecurityException e) {
-			Log.e(TAG, "unable to write on the sd card ");
-		}
-
-		// Checks whether path exists
-		if (path.exists()) {
-			FilenameFilter filter = new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String filename) {
-					File sel = new File(dir, filename);
-					// Filters based on whether the file is hidden or not
-					return (sel.isFile() || sel.isDirectory())
-							&& !sel.isHidden();
-
-				}
-			};
-
-			String[] fList = path.list(filter);
-			fileList = new ArrayList<Data>(fList.length);
-			for (int i = 0; i < fList.length; i++) {
-				// Convert into file path
-				File sel = new File(path, fList[i]);
-
-				if (sel.isDirectory()) {
-					fileList.add(new Data(fList[i], DataTypeEnum.FOLDER,
-							new Date(sel.lastModified())));
-					Log.d("DIRECTORY", fileList.get(i).toString());
-				} else {
-					fileList.add(new Data(fList[i], DataTypeEnum.FILE,
-							new Date(sel.lastModified())));
-					Log.d("FILE", fileList.get(i).toString());
-				}
+		new Handler().postDelayed(new Runnable() {
+			public void run() {
+				((HorizontalScrollView) findViewById(R.id.url_scroll_bar))
+						.fullScroll(HorizontalScrollView.FOCUS_RIGHT);
 			}
+		}, 100L);
 
-		} else {
-			Log.e(TAG, "path does not exist");
+	}
+
+	private void openFile(File d) {
+		/**
+		 * TODO: Find out who to open files.
+		 */
+	}
+
+	/**
+	 * Create a new folder in the last directory open.
+	 */
+	private void createNewFolder() {
+		AlertDialog.Builder newAlert = new AlertDialog.Builder(this);
+
+		newAlert.setTitle(R.string.title_new_folder_alert);
+		newAlert.setMessage(R.string.new_folder_name_msg);
+
+		nameField = new UrlEditText(this, getCurrentDirectory());
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+				LinearLayout.LayoutParams.FILL_PARENT,
+				LinearLayout.LayoutParams.FILL_PARENT);
+		nameField.setLayoutParams(lp);
+		nameField.setSingleLine();
+		nameField.findFocus();
+		newAlert.setView(nameField);
+
+		newAlert.setPositiveButton(R.string.btn_ok,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int whichButton) {
+						if (!nameField.getText().toString().equals("")) {
+							try {
+								File newFile = new File(nameField.getFile()
+										.getPath(), nameField.getText()
+										.toString());
+								HomeActivity.this.currentFM
+										.createDirectory(newFile);
+								openFolder(newFile);
+							} catch (CantCreateFileException e) {
+								if (e.getMessage().contains("exists"))
+									Toast.makeText(HomeActivity.this,
+											R.string.new_folder_exists_msg,
+											Toast.LENGTH_SHORT).show();
+							}
+						}
+
+					}
+				});
+		newAlert.setNegativeButton(R.string.btn_cancel, null);
+
+		newAlert.show();
+	}
+
+	/**
+	 * Update the current listview of files.
+	 * 
+	 * @param file
+	 *            file root of the new listview.
+	 */
+	private void loadFileList(File file) {
+		List<File> fList;
+
+		if (getCurrentDirectory().getName().equals(HomeActivity.HOME)) {
+			currentFM = fManagers.get(file.getName());
 		}
 
-		if (!fileList.isEmpty())
-			dirList.setAdapter(new DirItemAdapter(this, R.layout.activity_home,
-					R.id.dir_list, fileList));
-		else {
+		fList = currentFM.openDirectory(file);
+
+		if (!fList.isEmpty()) {
+			Collections.sort(fList, new Comparator<File>() {
+				@Override
+				public int compare(File f1, File f2) {
+					if ((f1.isDirectory() && f2.isDirectory())
+							|| (f1.isFile() && f2.isFile()))
+						return f1.getName().compareToIgnoreCase(f2.getName());
+					else if (f1.isDirectory() && f2.isFile())
+						return -1;
+					return 1;
+				}
+			});
+			populateListView(dirList, R.layout.activity_home, R.id.dir_list,
+					fList);
+			findViewById(R.id.empty).setVisibility(View.GONE);
+		} else {
 			findViewById(R.id.empty).setVisibility(View.VISIBLE);
 			dirList.setVisibility(View.GONE);
 		}
 
 	}
+
+	private void populateListView(ListView view, int layoutResourceId,
+			int textViewResourceId, List<File> list) {
+
+		view.setVisibility(View.VISIBLE);
+		view.setAdapter(new DirItemAdapter(this, layoutResourceId,
+				textViewResourceId, list));
+
+	}
+
+	private File getCurrentDirectory() {
+		if (!urlBtns.isEmpty())
+			return urlBtns.get(urlBtns.size() - 1).getFile();
+		return new File(HOME, HOME);
+	}
+
+	private void cutData(File d) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void copyData(File d) {
+		// TODO Auto-generated method stub
+
+	}
+
 }

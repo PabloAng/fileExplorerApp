@@ -4,10 +4,7 @@ import java.io.File;
 
 import android.content.Context;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.widget.Button;
-
-import com.demo.explorer.R;
 
 public class UrlButton extends Button {
 

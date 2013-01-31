@@ -23,7 +23,8 @@
     <string name="empty_dir">Empty folder</string>
     <string name="default_dir_url">Home</string>
     <string name="default_last_mod">01/01/0001 00:00</string>
-
+    <string name="default_size">100.2kb</string>
+    
     <!-- Colors -->
     <color name="gray">#424242</color>
 
@@ -31,7 +32,8 @@
     <string name="menu_remove">Remove</string>
     <string name="menu_rename">Rename</string>
     <string name="menu_copy">Copy</string>
-    <string name="menu_move">Move</string>
+    <string name="menu_cut">Cut</string>
+    <string name="menu_paste">Paste</string>
 
     <!-- Remove Alert -->
     <string name="title_remove_alert">Remove</string>
@@ -48,7 +50,5 @@
     <!-- Button Label -->
     <string name="btn_ok">Ok</string>
     <string name="btn_cancel">Cancel</string>
-    <string name="menu_cut">Cut</string>
-    <string name="default_size">100.2kb</string>
 
 </resources>
