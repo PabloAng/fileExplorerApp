@@ -250,7 +250,7 @@ public class HomeActivity extends Activity {
 		dirList = (ListView) this.findViewById(R.id.dir_list);
 		dirList.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 
-		goHome = new UrlButton(this, R.drawable.black_button_left, getText(
+		goHome = new UrlButton(this, R.drawable.black_button_full, getText(
 				R.string.default_dir_url).toString()
 		/* + "  /" */, new File(HomeActivity.HOME)); // go Home button
 
@@ -287,6 +287,7 @@ public class HomeActivity extends Activity {
 			urlBtns.clear();
 			urlBar.removeAllViews();
 
+			goHome.setBackgroundResource(R.drawable.black_button_full);
 			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
 					LinearLayout.LayoutParams.WRAP_CONTENT,
 					LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -408,6 +409,7 @@ public class HomeActivity extends Activity {
 		UrlButton btn = new UrlButton(this, R.drawable.black_button_right,
 				d.getName()/* + "  /" */, d);
 
+		
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
 				LinearLayout.LayoutParams.WRAP_CONTENT,
 				LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -430,6 +432,8 @@ public class HomeActivity extends Activity {
 			}
 		});
 
+		goHome.setBackgroundResource(R.drawable.black_button_left);
+		
 		loadFileList(d);
 		if (!urlBtns.isEmpty())
 			urlBtns.get(urlBtns.size() - 1).setBackgroundResource(

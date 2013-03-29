@@ -10,14 +10,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
-import android.content.pm.PackageManager;
-import android.net.Uri;
-import android.view.View;
-import android.widget.Toast;
-
 import com.android.explorer.exceptions.CantCopyFileException;
 import com.android.explorer.exceptions.CantCreateFileException;
 import com.android.explorer.exceptions.CantMoveFileException;
@@ -26,9 +18,6 @@ import com.android.explorer.exceptions.CantRenameFileException;
 import com.android.explorer.interfaces.FileManager;
 import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
-import com.dropbox.client2.android.AuthActivity;
-import com.dropbox.client2.session.AccessTokenPair;
-import com.dropbox.client2.session.AppKeyPair;
 import com.dropbox.client2.session.Session.AccessType;
 
 public class DropboxExplorer implements FileManager {
