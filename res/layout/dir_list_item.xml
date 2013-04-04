@@ -68,7 +68,8 @@
         android:layout_marginLeft="5dp"
         android:layout_marginRight="5dp"
         android:focusable="false"
-        android:maxLength="0" >
+        android:maxLength="0"
+        android:visibility="gone" >
     </CheckBox>
 
 </LinearLayout>
