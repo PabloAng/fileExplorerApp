@@ -180,7 +180,9 @@ public class DownloadFile extends AsyncTask<Void, Long, Boolean> {
 	@Override
 	protected void onPostExecute(Boolean result) {
 		mDialog.dismiss();
-		showToast("Download compleated");
+		if (!mCanceled) {
+			showToast("Download compleated");
+		}
 	}
 
 	private void showToast(String msg) {

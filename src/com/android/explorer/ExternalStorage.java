@@ -2,6 +2,7 @@ package com.android.explorer;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -88,6 +89,11 @@ public class ExternalStorage {
 				internalRootName + "/" + entry.path + "/.metadata");
 		FileOutputStream outputStream;
 
+		if (file.exists()) {
+			Entry e = getMetadata(internalRootName, entry.path);
+			if (entry.contents == null && e != null && e.contents != null)
+				return;
+		}
 		try {
 			outputStream = new FileOutputStream(file);
 
@@ -97,7 +103,6 @@ public class ExternalStorage {
 				for (Entry e : entry.contents) {
 					writeEntry(outputStream, e);
 				}
-				outputStream.write(("\n").getBytes());
 			}
 			outputStream.close();
 		} catch (Exception e) {
@@ -127,8 +132,8 @@ public class ExternalStorage {
 		if (!file.exists())
 			return ent;
 		try {
-			inputStream = context.openFileInput(file.getAbsolutePath());
 
+			inputStream = new FileInputStream(file);
 			InputStreamReader inputStreamReader = new InputStreamReader(
 					inputStream);
 			BufferedReader bufferedReader = new BufferedReader(
@@ -139,16 +144,16 @@ public class ExternalStorage {
 				;
 			ent = new Entry();
 			initEntry(ent, lines);
-			while ((lines[i++] = bufferedReader.readLine()) != null) {
-				if (lines[i].equals("+++"))
-					i = 0;
+			i = 0;
+			while ((lines[i++] = bufferedReader.readLine()) != null && i < 10) {
 				if (i == 9) {
 					Entry e = new Entry();
 					initEntry(e, lines);
 					listEnt.add(e);
+					i = 0;
 				}
 			}
-
+			inputStream.close();
 		} catch (FileNotFoundException e) {
 		} catch (IOException e) {
 		}
@@ -160,12 +165,12 @@ public class ExternalStorage {
 	private void initEntry(Entry entry, String[] lines) {
 		entry.size = lines[0];
 		entry.rev = lines[1];
-		entry.thumbExists = Boolean.getBoolean(lines[2]);
-		entry.bytes = Long.getLong(lines[3]);
+		entry.thumbExists = Boolean.parseBoolean(lines[2]);
+		entry.bytes = Long.parseLong(lines[3]);
 		entry.modified = lines[4];
 		entry.clientMtime = lines[5];
 		entry.path = lines[6];
-		entry.isDir = Boolean.getBoolean(lines[7]);
+		entry.isDir = Boolean.parseBoolean(lines[7]);
 		entry.root = lines[8];
 		entry.contents = null;
 	}

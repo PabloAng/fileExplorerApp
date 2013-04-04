@@ -347,7 +347,7 @@ public abstract class ExplorerTabActivity extends Activity {
 	 *            File object. In case of directory, opens the directory and
 	 *            update the listview. Nothing if it is a file.
 	 */
-	private void openData(ExplorerEntity d) {
+	protected void openData(ExplorerEntity d) {
 		if (d.isDirectory())
 			openFolder(d);
 		else if (d.isFile())
@@ -360,7 +360,7 @@ public abstract class ExplorerTabActivity extends Activity {
 	 * @param d
 	 *            File to be removed.
 	 */
-	private void removeData(ExplorerEntity d) {
+	protected void removeData(ExplorerEntity d) {
 		pendingRemovals.clear();
 		pendingRemovals.add(d);
 		AlertDialog.Builder removeAlert = new AlertDialog.Builder(this);
@@ -409,7 +409,7 @@ public abstract class ExplorerTabActivity extends Activity {
 	 * @param d
 	 *            File to be renamed.
 	 */
-	private void renameData(ExplorerEntity d) {
+	protected void renameData(ExplorerEntity d) {
 		AlertDialog.Builder editalert = new AlertDialog.Builder(this);
 
 		editalert.setTitle(R.string.title_rename_alert);
@@ -491,7 +491,7 @@ public abstract class ExplorerTabActivity extends Activity {
 
 	}
 
-	private void openFile(ExplorerEntity entity) {
+	protected void openFile(ExplorerEntity entity) {
 		/**
 		 * TODO: Find out who to open files.
 		 */

@@ -134,8 +134,9 @@ public class DBFile extends ExplorerEntity {
 
 	@Override
 	public String[] list() {
+		refresh();
 		if (mEntry.contents == null)
-			refresh();
+			return new String[0];
 		String[] list = new String[mEntry.contents.size()];
 		int i = 0;
 		for (Entry ent : mEntry.contents) {
@@ -148,8 +149,9 @@ public class DBFile extends ExplorerEntity {
 
 	@Override
 	public String[] list(FilenameFilter filter) {
+		refresh();
 		if (mEntry.contents == null)
-			refresh();
+			return new String[0];
 		String[] list = new String[mEntry.contents.size()];
 		int i = 0;
 		for (Entry ent : mEntry.contents) {
@@ -162,8 +164,9 @@ public class DBFile extends ExplorerEntity {
 
 	@Override
 	public ExplorerEntity[] listEntities() {
+		refresh();
 		if (mEntry.contents == null)
-			refresh();
+			return new ExplorerEntity[0];
 		ExplorerEntity[] list = new ExplorerEntity[mEntry.contents.size()];
 		int i = 0;
 		for (Entry ent : mEntry.contents) {
@@ -176,8 +179,9 @@ public class DBFile extends ExplorerEntity {
 
 	@Override
 	public ExplorerEntity[] listEntities(FileFilter filter) {
+		refresh();
 		if (mEntry.contents == null)
-			refresh();
+			return new ExplorerEntity[0];
 		ExplorerEntity[] list = new ExplorerEntity[mEntry.contents.size()];
 		int i = 0;
 		for (Entry ent : mEntry.contents) {
@@ -190,8 +194,9 @@ public class DBFile extends ExplorerEntity {
 
 	@Override
 	public ExplorerEntity[] listEntities(FilenameFilter filter) {
+		refresh();
 		if (mEntry.contents == null)
-			refresh();
+			return new ExplorerEntity[0];
 		ExplorerEntity[] list = new ExplorerEntity[mEntry.contents.size()];
 		int i = 0;
 		for (Entry ent : mEntry.contents) {
@@ -257,6 +262,11 @@ public class DBFile extends ExplorerEntity {
 			if (mEntry.isDir)
 				ExternalStorage.getInstance().saveMetadata(
 						DBFile.DROPBOX_CACHE, mEntry);
+		} else {
+			entry = ExternalStorage.getInstance().getMetadata(
+					DBFile.DROPBOX_CACHE, path);
+			if (entry != null && entry.contents != null)
+				mEntry = entry;
 		}
 		// if (mEntry != null)
 		// ExternalStorage.getInstance().saveMetadata(DBFile.DROPBOX_CACHE,
