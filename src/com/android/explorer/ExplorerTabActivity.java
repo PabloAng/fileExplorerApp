@@ -40,6 +40,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.explorer.exceptions.CantCreateFileException;
+import com.android.explorer.exceptions.CantOpenFileException;
 import com.android.explorer.exceptions.CantRemoveFileException;
 import com.android.explorer.exceptions.CantRenameFileException;
 import com.java.explorer.DateFormatter;
@@ -48,7 +49,6 @@ import com.java.explorer.ExplorerEntity;
 import com.java.explorer.FileSizeFormatter;
 import com.java.explorer.UrlButton;
 import com.java.explorer.UrlEditText;
-import com.java.explorer.excpetions.CantOpenFileException;
 
 public abstract class ExplorerTabActivity extends Activity {
 
