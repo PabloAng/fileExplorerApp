@@ -12,9 +12,9 @@
         android:titleCondensed="@string/menu_rename">
     </item>
     <item
-        android:id="@+id/menu_cut"
-        android:title="@string/menu_cut"
-        android:titleCondensed="@string/menu_cut">
+        android:id="@+id/menu_move"
+        android:title="@string/menu_move"
+        android:titleCondensed="@string/menu_move">
     </item>
     <item
         android:id="@+id/menu_copy"

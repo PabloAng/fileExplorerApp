@@ -63,4 +63,6 @@ public abstract class ExplorerEntity {
 	public abstract String getMimeType();
 
 	public abstract Uri toUri();
+
+	public abstract int getImageResource();
 }

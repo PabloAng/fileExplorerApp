@@ -22,7 +22,6 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -44,11 +43,12 @@ import com.android.explorer.exceptions.CantCreateFileException;
 import com.android.explorer.exceptions.CantRemoveFileException;
 import com.android.explorer.exceptions.CantRenameFileException;
 import com.java.explorer.DateFormatter;
-import com.java.explorer.EntityManager;
+import com.java.explorer.Explorer;
 import com.java.explorer.ExplorerEntity;
 import com.java.explorer.FileSizeFormatter;
 import com.java.explorer.UrlButton;
 import com.java.explorer.UrlEditText;
+import com.java.explorer.excpetions.CantOpenFileException;
 
 public abstract class ExplorerTabActivity extends Activity {
 
@@ -66,17 +66,15 @@ public abstract class ExplorerTabActivity extends Activity {
 	private UrlEditText nameField = null;
 
 	private List<UrlButton> urlBtns = null;
-	// private List<ExplorerEntity> homeList = null;
 	private List<ExplorerEntity> pendingRemovals = null;
 
-	// Map<String, EntityManager> fManagers = null;
-	EntityManager fManager = null;
+	protected Explorer mExplorer = null;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_home);
+		setContentView(R.layout.explorer);
 
 		homeName = "Home";
 		pendingRemovals = new ArrayList<ExplorerEntity>();
@@ -92,41 +90,13 @@ public abstract class ExplorerTabActivity extends Activity {
 			if (!urlBtns.isEmpty()) {
 				urlBtns.get(urlBtns.size() - 1).setBackgroundResource(
 						R.drawable.black_button_right);
-				loadFileList(urlBtns.get(urlBtns.size() - 1).getEntity());
+				refreshDirectory(urlBtns.get(urlBtns.size() - 1).getEntity());
 			} else
 				goHomeView();
 		} else {
 			super.onBackPressed();
 		}
 	}
-
-	public abstract void downloadFile(ExplorerEntity entity);
-
-	// /***************** OPTION MENU SETUP *******************/
-	// @Override
-	// public boolean onCreateOptionsMenu(Menu menu) {
-	// // Inflate the menu; this adds items to the action bar if it is present.
-	// getMenuInflater().inflate(R.menu.local_tab_menu, menu);
-	//
-	// return true;
-	// }
-	//
-	// // This method is called once the menu is selected
-	// @Override
-	// public boolean onOptionsItemSelected(MenuItem item) {
-	// if (!getCurrentDirectory().exists())
-	// return false;
-	// switch (item.getItemId()) {
-	//
-	// case R.id.config:
-	//
-	// break;
-	// case R.id.new_folder:
-	// createNewFolder();
-	// break;
-	// }
-	// return true;
-	// }
 
 	/***************** CONTEXT MENU SETUP *******************/
 	@Override
@@ -143,43 +113,30 @@ public abstract class ExplorerTabActivity extends Activity {
 			// Retrieve the item that was clicked on
 			ExplorerEntity item = (ExplorerEntity) adapter
 					.getItem(info.position);
-			menu.setHeaderTitle(item.toString());
-			MenuInflater inflater = getMenuInflater();
+			menu.setHeaderTitle(item.getName());
 
-			inflater.inflate(R.menu.dir_item_menu, menu);
+			inflateContextMenu(menu, item);
 		}
 	}
 
+	public abstract void inflateContextMenu(ContextMenu menu,
+			ExplorerEntity entity);
+
 	@Override
 	public boolean onContextItemSelected(MenuItem mItem) {
+
 		// Get the correct item in onContextItemSelected()
 		AdapterContextMenuInfo info = (AdapterContextMenuInfo) mItem
 				.getMenuInfo();
 		// Retrieve the item that was clicked on
-		ExplorerEntity d = (ExplorerEntity) dirList.getAdapter().getItem(
-				info.position);
 
-		switch (mItem.getItemId()) {
-		case R.id.menu_open:
-			openData(d);
-			break;
-		case R.id.menu_copy:
-			copyData(d);
-			break;
-		case R.id.menu_cut:
-			cutData(d);
-			break;
-		case R.id.menu_remove:
-			removeData(d);
-			break;
-		case R.id.menu_rename:
-			renameData(d);
-			break;
-		default:
-			break;
-		}
+		onItemSelected(
+				(ExplorerEntity) dirList.getAdapter().getItem(info.position),
+				mItem.getItemId());
 		return true;
 	}
+
+	protected abstract void onItemSelected(ExplorerEntity entity, int itemId);
 
 	/**
 	 * Adapter used to populate listItems with folders and files data
@@ -197,7 +154,6 @@ public abstract class ExplorerTabActivity extends Activity {
 
 		@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
-
 			View v = convertView;
 			if (v == null) {
 				LayoutInflater vi = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -223,8 +179,8 @@ public abstract class ExplorerTabActivity extends Activity {
 				id.setText(item.getName());
 
 				lmod.setText(DateFormatter.formatDate(item.lastModified()));
+				icon.setImageResource(item.getImageResource());
 				if (item.isDirectory()) {
-					icon.setImageResource(R.drawable.ic_folder);
 					weight.setVisibility(View.GONE);
 				} else if (item.isFile()) {
 
@@ -237,9 +193,7 @@ public abstract class ExplorerTabActivity extends Activity {
 					}
 					if (bitmap != null)
 						icon.setImageBitmap(bitmap);
-					else {
-						icon.setImageResource(R.drawable.ic_document);
-					}
+
 					String length = FileSizeFormatter.formatFileSize(item
 							.length());
 					weight.setText(length);
@@ -300,8 +254,8 @@ public abstract class ExplorerTabActivity extends Activity {
 		dirList.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 
 		goHome = new UrlButton(this, R.drawable.black_button_full, homeName,
-				fManager.getRootDirectory()); // go Home button
-
+				mExplorer.getRootDirectory()); // go Home button
+		mExplorer.refreshDirectory(mExplorer.getRootDirectory());
 		// Set goHome listener: show home view on Click
 		goHome.setOnClickListener(new OnClickListener() {
 			@Override
@@ -315,7 +269,10 @@ public abstract class ExplorerTabActivity extends Activity {
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view,
 					int position, long id) {
-				openData((ExplorerEntity) dirList.getItemAtPosition(position));
+				ExplorerEntity file = (ExplorerEntity) dirList
+						.getItemAtPosition(position);
+				// fManager.refreshDirectory(file);
+				openData(file);
 			}
 
 		});
@@ -327,7 +284,7 @@ public abstract class ExplorerTabActivity extends Activity {
 	 * Reset listview to Home
 	 */
 	protected void goHomeView() {
-		loadFileList(fManager.getRootDirectory());
+		refreshUI(mExplorer.getRootDirectory());
 
 		urlBtns.clear();
 		urlBar.removeAllViews();
@@ -339,6 +296,120 @@ public abstract class ExplorerTabActivity extends Activity {
 		urlBar.addView(goHome, lp);
 
 	}
+
+	public void refreshDirectory(ExplorerEntity entity) {
+		mExplorer.refreshDirectory((entity == null) ? getCurrentDirectory()
+				: entity);
+		refreshUI(entity);
+	}
+
+	public void refreshUI(ExplorerEntity entity) {
+		loadFileList((entity == null) ? getCurrentDirectory() : entity);
+	}
+
+	/**
+	 * Create a new folder in the last directory open.
+	 */
+	public void createNewDirectory() {
+		AlertDialog.Builder newAlert = new AlertDialog.Builder(this);
+
+		newAlert.setTitle(R.string.title_new_folder_alert);
+		newAlert.setMessage(R.string.new_folder_name_msg);
+
+		nameField = new UrlEditText(this, getCurrentDirectory());
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+				LinearLayout.LayoutParams.FILL_PARENT,
+				LinearLayout.LayoutParams.FILL_PARENT);
+		nameField.setLayoutParams(lp);
+		nameField.setSingleLine();
+		nameField.findFocus();
+		newAlert.setView(nameField);
+
+		newAlert.setPositiveButton(R.string.btn_ok,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int whichButton) {
+						if (!nameField.getText().toString().equals("")) {
+							try {
+								/* openFolder( */ExplorerTabActivity.this.mExplorer
+										.createDirectory(nameField.getEntity(),
+												nameField.getText().toString())/* ) */;
+							} catch (CantCreateFileException e) {
+								if (e.getMessage().contains("exists"))
+									showToast(getString(R.string.new_folder_exists_msg));
+							}
+						}
+
+					}
+				});
+		newAlert.setNegativeButton(R.string.btn_cancel, null);
+
+		newAlert.show();
+	}
+
+	/**
+	 * Update the current listview of files.
+	 * 
+	 * @param file
+	 *            file root of the new listview.
+	 */
+	private void loadFileList(ExplorerEntity file) {
+		List<ExplorerEntity> fList;
+
+		try {
+			fList = mExplorer.openDirectory(file);
+
+			if (!fList.isEmpty()) {
+				Collections.sort(fList, new Comparator<ExplorerEntity>() {
+					@Override
+					public int compare(ExplorerEntity f1, ExplorerEntity f2) {
+						if ((f1.isDirectory() && f2.isDirectory())
+								|| (f1.isFile() && f2.isFile()))
+							return f1.getName().compareToIgnoreCase(
+									f2.getName());
+						else if (f1.isDirectory() && f2.isFile())
+							return -1;
+						return 1;
+					}
+				});
+				populateListView(dirList, R.layout.explorer, R.id.dir_list,
+						fList);
+				findViewById(R.id.empty).setVisibility(View.GONE);
+			} else {
+				findViewById(R.id.empty).setVisibility(View.VISIBLE);
+				dirList.setVisibility(View.GONE);
+			}
+
+		} catch (CantOpenFileException e) {
+		}
+
+	}
+
+	protected void populateListView(ListView view, int layoutResourceId,
+			int textViewResourceId, List<ExplorerEntity> list) {
+
+		view.setVisibility(View.VISIBLE);
+		view.setAdapter(new DirItemAdapter(this, layoutResourceId,
+				textViewResourceId, list));
+
+	}
+
+	private ExplorerEntity getCurrentDirectory() {
+		if (!urlBtns.isEmpty())
+			return urlBtns.get(urlBtns.size() - 1).getEntity();
+		return mExplorer.getRootDirectory();
+	}
+
+	public void updateListItems() {
+		this.refreshUI(null);
+		// ((ArrayAdapter) this.dirList.getAdapter()).notifyDataSetChanged();
+	}
+
+	protected void showToast(String message) {
+		Toast.makeText(ExplorerTabActivity.this, message, Toast.LENGTH_SHORT)
+				.show();
+	}
+
+	// *************** Context Menu Controller ***************** //
 
 	/**
 	 * Open the File, and show the result.
@@ -366,7 +437,7 @@ public abstract class ExplorerTabActivity extends Activity {
 		AlertDialog.Builder removeAlert = new AlertDialog.Builder(this);
 
 		removeAlert.setTitle(R.string.title_remove_alert);
-		removeAlert.setMessage(R.string.remove_msg);
+		removeAlert.setMessage(R.string.remove_msg + " " + d.getName());
 
 		removeAlert.setPositiveButton(R.string.btn_ok,
 				new DialogInterface.OnClickListener() {
@@ -381,26 +452,6 @@ public abstract class ExplorerTabActivity extends Activity {
 					}
 				});
 		removeAlert.show();
-	}
-
-	/**
-	 * Delete pending files that were confirmed to be removed by the user.
-	 */
-	private void deletePendingFiles() {
-		for (ExplorerEntity d : pendingRemovals) {
-			ExplorerEntity parent = d.getParentEntity();
-			try {
-				this.fManager.removeEntity(d);
-				Toast.makeText(this,
-						d.getName() + " " + getText(R.string.removed_msg),
-						Toast.LENGTH_SHORT).show();
-				loadFileList(parent);
-			} catch (CantRemoveFileException e) {
-				Toast.makeText(this,
-						d.getName() + " " + getText(R.string.not_removed_msg),
-						Toast.LENGTH_SHORT).show();
-			}
-		}
 	}
 
 	/**
@@ -429,16 +480,11 @@ public abstract class ExplorerTabActivity extends Activity {
 				new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int whichButton) {
 						try {
-							ExplorerTabActivity.this.fManager.renameEntity(
+							ExplorerTabActivity.this.mExplorer.renameEntity(
 									nameField.getEntity(), nameField.getText()
 											.toString());
-							loadFileList(nameField.getEntity()
-									.getParentEntity());
 						} catch (CantRenameFileException e) {
-							Toast.makeText(ExplorerTabActivity.this,
-									R.string.not_renamed_msg,
-									Toast.LENGTH_SHORT).show();
-
+							showToast(getString(R.string.not_renamed_msg));
 						}
 					}
 				});
@@ -447,9 +493,60 @@ public abstract class ExplorerTabActivity extends Activity {
 		editalert.show();
 	}
 
+	protected void moveData(ExplorerEntity d) {
+		// TODO Auto-generated method stub
+
+	}
+
+	protected void copyData(ExplorerEntity d) {
+		// AlertDialog.Builder editalert = new AlertDialog.Builder(this);
+		//
+		// editalert.setTitle(R.string.title_rename_alert);
+		// editalert.setMessage(R.string.rename_msg);
+		//
+		// nameField = new UrlEditText(this, d);
+		// LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+		// LinearLayout.LayoutParams.FILL_PARENT,
+		// LinearLayout.LayoutParams.FILL_PARENT);
+		// nameField.setLayoutParams(lp);
+		// nameField.setSingleLine();
+		// nameField.setText(d.getName());
+		// nameField.selectAll();
+		//
+		// editalert.setView(nameField);
+		// editalert.setPositiveButton(R.string.btn_ok,
+		// new DialogInterface.OnClickListener() {
+		// public void onClick(DialogInterface dialog, int whichButton) {
+		// try {
+		// ExplorerTabActivity.this.mExplorer.renameEntity(
+		// nameField.getEntity(), nameField.getText()
+		// .toString());
+		// } catch (CantRenameFileException e) {
+		// showToast(getString(R.string.not_renamed_msg));
+		// }
+		// }
+		// });
+		// editalert.setNegativeButton(R.string.btn_cancel, null);
+		//
+		// editalert.show();
+	}
+
+	/**
+	 * Delete pending files that were confirmed to be removed by the user.
+	 */
+	private void deletePendingFiles() {
+		for (ExplorerEntity d : pendingRemovals) {
+			try {
+				this.mExplorer.removeEntity(d);
+			} catch (CantRemoveFileException e) {
+				showToast(d.getName() + " " + getText(R.string.not_removed_msg));
+			}
+		}
+	}
+
 	private void openFolder(ExplorerEntity d) {
 		UrlButton btn = new UrlButton(this, R.drawable.black_button_right,
-				d.getName()/* + "  /" */, d);
+				d.getName(), d);
 
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
 				LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -469,13 +566,13 @@ public abstract class ExplorerTabActivity extends Activity {
 						urlBar.removeView(btn);
 					}
 				}
-				loadFileList(((UrlButton) v).getEntity());
+				refreshUI(((UrlButton) v).getEntity());
 			}
 		});
 
 		goHome.setBackgroundResource(R.drawable.black_button_left);
 
-		loadFileList(d);
+		refreshDirectory(d);
 		if (!urlBtns.isEmpty())
 			urlBtns.get(urlBtns.size() - 1).setBackgroundResource(
 					R.drawable.black_button_middle);
@@ -492,9 +589,6 @@ public abstract class ExplorerTabActivity extends Activity {
 	}
 
 	protected void openFile(ExplorerEntity entity) {
-		/**
-		 * TODO: Find out who to open files.
-		 */
 		Uri data = entity.toUri();
 		String type = entity.getMimeType();
 
@@ -506,112 +600,6 @@ public abstract class ExplorerTabActivity extends Activity {
 				startActivity(intent);
 			} catch (Exception e) {
 			}
-		else {
-			this.downloadFile(entity);
-		}
-	}
-
-	public void refreshDirectory() {
-		fManager.refreshDirectory(getCurrentDirectory());
-		loadFileList(getCurrentDirectory());
-	}
-
-	/**
-	 * Create a new folder in the last directory open.
-	 */
-	public void createNewDirectory() {
-		AlertDialog.Builder newAlert = new AlertDialog.Builder(this);
-
-		newAlert.setTitle(R.string.title_new_folder_alert);
-		newAlert.setMessage(R.string.new_folder_name_msg);
-
-		nameField = new UrlEditText(this, getCurrentDirectory());
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-				LinearLayout.LayoutParams.FILL_PARENT,
-				LinearLayout.LayoutParams.FILL_PARENT);
-		nameField.setLayoutParams(lp);
-		nameField.setSingleLine();
-		nameField.findFocus();
-		newAlert.setView(nameField);
-
-		newAlert.setPositiveButton(R.string.btn_ok,
-				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int whichButton) {
-						if (!nameField.getText().toString().equals("")) {
-							try {
-								openFolder(ExplorerTabActivity.this.fManager
-										.createDirectory(nameField.getEntity(),
-												nameField.getText().toString()));
-							} catch (CantCreateFileException e) {
-								if (e.getMessage().contains("exists"))
-									Toast.makeText(ExplorerTabActivity.this,
-											R.string.new_folder_exists_msg,
-											Toast.LENGTH_SHORT).show();
-							}
-						}
-
-					}
-				});
-		newAlert.setNegativeButton(R.string.btn_cancel, null);
-
-		newAlert.show();
-	}
-
-	/**
-	 * Update the current listview of files.
-	 * 
-	 * @param file
-	 *            file root of the new listview.
-	 */
-	private void loadFileList(ExplorerEntity file) {
-		List<ExplorerEntity> fList;
-
-		fList = fManager.openDirectory(file);
-
-		if (!fList.isEmpty()) {
-			Collections.sort(fList, new Comparator<ExplorerEntity>() {
-				@Override
-				public int compare(ExplorerEntity f1, ExplorerEntity f2) {
-					if ((f1.isDirectory() && f2.isDirectory())
-							|| (f1.isFile() && f2.isFile()))
-						return f1.getName().compareToIgnoreCase(f2.getName());
-					else if (f1.isDirectory() && f2.isFile())
-						return -1;
-					return 1;
-				}
-			});
-			populateListView(dirList, R.layout.activity_home, R.id.dir_list,
-					fList);
-			findViewById(R.id.empty).setVisibility(View.GONE);
-		} else {
-			findViewById(R.id.empty).setVisibility(View.VISIBLE);
-			dirList.setVisibility(View.GONE);
-		}
-
-	}
-
-	private void populateListView(ListView view, int layoutResourceId,
-			int textViewResourceId, List<ExplorerEntity> list) {
-
-		view.setVisibility(View.VISIBLE);
-		view.setAdapter(new DirItemAdapter(this, layoutResourceId,
-				textViewResourceId, list));
-
-	}
-
-	private ExplorerEntity getCurrentDirectory() {
-		if (!urlBtns.isEmpty())
-			return urlBtns.get(urlBtns.size() - 1).getEntity();
-		return fManager.getRootDirectory();
-	}
-
-	private void cutData(ExplorerEntity d) {
-		// TODO Auto-generated method stub
-
-	}
-
-	private void copyData(ExplorerEntity d) {
-		// TODO Auto-generated method stub
 
 	}
 

@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class SdCardExplorer extends EntityManager {
+public class SdCardExplorer extends Explorer {
 
 	private boolean showHidden = true;
 	private FilenameFilter fileFilter = null;

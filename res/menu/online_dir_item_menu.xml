@@ -7,14 +7,24 @@
         android:titleCondensed="@string/menu_open">
     </item>
     <item
+        android:id="@+id/menu_update_cache"
+        android:title="@string/menu_update_cache"
+        android:titleCondensed="@string/menu_update_cache">
+    </item>
+    <item
+        android:id="@+id/menu_remove_cache"
+        android:title="@string/menu_remove_cache"
+        android:titleCondensed="@string/menu_remove_cache">
+    </item>
+    <item
         android:id="@+id/menu_rename"
         android:title="@string/menu_rename"
         android:titleCondensed="@string/menu_rename">
     </item>
     <item
-        android:id="@+id/menu_cut"
-        android:title="@string/menu_cut"
-        android:titleCondensed="@string/menu_cut">
+        android:id="@+id/menu_move"
+        android:title="@string/menu_move"
+        android:titleCondensed="@string/menu_move">
     </item>
     <item
         android:id="@+id/menu_copy"

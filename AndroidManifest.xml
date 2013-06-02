@@ -5,6 +5,7 @@
     android:versionName="1.0" >
 
     <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -35,7 +36,7 @@
             <intent-filter>
 
                 <!-- Change this to be db- followed by your app key -->
-                <data android:scheme="db-0ih4zavoev471no" />
+                <data android:scheme="db-6nflv40o10mji9b" />
 
                 <action android:name="android.intent.action.VIEW" />
 

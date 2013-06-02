@@ -1,9 +1,14 @@
 package com.android.explorer;
 
-import android.os.Bundle;
+import java.io.File;
 
-import com.java.explorer.DropboxClient;
-import com.java.explorer.DropboxExplorer;
+import android.os.Bundle;
+import android.view.ContextMenu;
+
+import com.android.explorer.dropbox.DropboxExplorer;
+import com.android.explorer.dropbox.DropboxFile;
+import com.android.explorer.dropbox.DropboxClient;
+import com.android.explorer.dropbox.DropboxDownloadTask;
 import com.java.explorer.ExplorerEntity;
 
 public class OnlineExplorerTabActivity extends ExplorerTabActivity {
@@ -18,7 +23,6 @@ public class OnlineExplorerTabActivity extends ExplorerTabActivity {
 
 	// STORAGE CLIENTS KEYS
 	public static final int STORAGE_CLIENT_DROPBOX = 0x1;
-
 	public static final int STORAGE_CLIENT_DRIVE = 0x2;
 
 	private ExplorerType mType = null;
@@ -48,60 +52,87 @@ public class OnlineExplorerTabActivity extends ExplorerTabActivity {
 	public void onResume() {
 		super.onResume();
 
-		if (fManager == null) {
+		if (mExplorer == null) {
 			switch (mType) {
 			case DROPBOX:
-				fManager = new DropboxExplorer();
+				mExplorer = new DropboxExplorer();
 				break;
 			case DRIVE:
 				// fManager = new DropboxExplorer();
 				break;
 			default:
-				fManager = new DropboxExplorer();
+				mExplorer = new DropboxExplorer();
 				break;
 			}
 			setViews();
 			// initHomeList();
 			goHomeView();
 		}
+		
+
 	}
 
 	@Override
+	public void onItemSelected(ExplorerEntity entity, int itemId) {
+
+		switch (itemId) {
+		case R.id.menu_open:
+			openData(entity);
+			break;
+		case R.id.menu_update_cache:
+			updateLocalCopyData(entity);
+			break;
+		case R.id.menu_remove_cache:
+			removeLocalCopyData(entity);
+			break;
+		case R.id.menu_copy:
+			copyData(entity);
+			break;
+		case R.id.menu_move:
+			moveData(entity);
+			break;
+		case R.id.menu_remove:
+			removeData(entity);
+			break;
+		case R.id.menu_rename:
+			renameData(entity);
+			break;
+		default:
+			break;
+		}
+
+	}
+
+	protected void openFile(ExplorerEntity entity) {
+		if (entity.toUri() != null)
+			super.openFile(entity);
+		else
+			this.downloadFile(entity);
+	}
+
 	public void downloadFile(ExplorerEntity entity) {
-		DownloadFile db = new DownloadFile(
+		DropboxDownloadTask db = new DropboxDownloadTask(
 				OnlineExplorerTabActivity.this.getParent(),
-				DropboxClient.getInstance(), entity.getPath());
+				DropboxClient.getInstance(), (DropboxFile) entity);
 		db.execute();
 	}
-	//
-	// @Override
-	// public void openData(ExplorerEntity e){
-	// super.openData(e);
-	// DropboxClient.getInstance().logOut();
-	// }
-	// /***************** OPTION MENU SETUP *******************/
-	// @Override
-	// public boolean onCreateOptionsMenu(Menu menu) {
-	// // Inflate the menu; this adds items to the action bar if it is present.
-	// getMenuInflater().inflate(R.menu.local_tab_menu, menu);
-	//
-	// return true;
-	// }
-	//
-	// // This method is called once the menu is selected
-	// @Override
-	// public boolean onOptionsItemSelected(MenuItem item) {
-	// if (!getCurrentDirectory().exists())
-	// return false;
-	// switch (item.getItemId()) {
-	//
-	// case R.id.config:
-	//
-	// break;
-	// case R.id.new_folder:
-	// createNewFolder();
-	// break;
-	// }
-	// return true;
-	// }
+
+	protected void removeLocalCopyData(ExplorerEntity d) {
+		File f = new File(d.toUri().getPath());
+		f.delete();
+		updateListItems();
+	}
+
+	protected void updateLocalCopyData(ExplorerEntity d) {
+		downloadFile(d);
+	}
+
+	@Override
+	public void inflateContextMenu(ContextMenu menu, ExplorerEntity entity) {
+		if (entity.isFile() && entity.toUri() != null)
+			getMenuInflater().inflate(R.menu.online_dir_item_menu, menu);
+		else
+			getMenuInflater().inflate(R.menu.dir_item_menu, menu);
+	}
+
 }

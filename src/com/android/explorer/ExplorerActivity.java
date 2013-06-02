@@ -15,8 +15,8 @@ import android.widget.TabHost;
 import android.widget.TabHost.TabSpec;
 import android.widget.Toast;
 
-import com.java.explorer.DropboxClient;
-import com.java.explorer.EntityManager;
+import com.android.explorer.dropbox.DropboxClient;
+import com.java.explorer.Explorer;
 
 public class ExplorerActivity extends TabActivity {
 
@@ -28,7 +28,7 @@ public class ExplorerActivity extends TabActivity {
 	private ImageButton addBtn;
 	// List<ListView> tabsDirList;
 
-	EntityManager currentFM = null;
+	Explorer currentFM = null;
 	private int count;
 	private KeyManager kManager;
 
@@ -46,8 +46,8 @@ public class ExplorerActivity extends TabActivity {
 		kManager = new KeyManager(ExplorerActivity.this);
 		String[] keys = kManager.getKeys(DropboxClient.DROPBOX_PREFERENCES);
 		if (keys != null) {
-			DropboxClient.getInstance().startAuthentication(
-					ExplorerActivity.this, keys[0], keys[1]);
+			DropboxClient db = DropboxClient.getInstance();
+			db.startAuthentication(ExplorerActivity.this, keys[0], keys[1]);
 			addTabMethod("Dropbox",
 					getResources().getDrawable(R.drawable.dropbox), 1);
 			ExplorerActivity.this.addBtn.setVisibility(View.GONE);
@@ -158,7 +158,7 @@ public class ExplorerActivity extends TabActivity {
 		tab.setContent(tabIntent);
 
 		// Adding all TabSpec to TabHost
-		tabHost.addTab(tab); // Adding photos tab
+		tabHost.addTab(tab); // Adding tab
 		tabHost.setCurrentTab(count++);
 
 		if (count == ExplorerActivity.MAX_TABS)
@@ -213,14 +213,13 @@ public class ExplorerActivity extends TabActivity {
 
 			break;
 		case R.id.refresh:
-			childActivity.refreshDirectory();
+			childActivity.refreshDirectory(null);
 			break;
 		case R.id.menu_logout:
 			deleteTabMethod();
 			break;
 		case R.id.new_folder:
 			childActivity.createNewDirectory();
-			// createNewFolder();
 			break;
 		}
 		return true;

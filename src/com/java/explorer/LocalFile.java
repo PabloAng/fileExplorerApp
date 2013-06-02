@@ -13,6 +13,8 @@ import java.io.OutputStream;
 import android.net.Uri;
 import android.webkit.MimeTypeMap;
 
+import com.android.explorer.R;
+
 public class LocalFile extends ExplorerEntity {
 
 	File mFile;
@@ -222,5 +224,12 @@ public class LocalFile extends ExplorerEntity {
 	@Override
 	public Uri toUri() {
 		return Uri.fromFile(mFile);
+	}
+
+	@Override
+	public int getImageResource() {
+		if (isDirectory())
+			return R.drawable.ic_folder;
+		return R.drawable.ic_document;
 	}
 }
